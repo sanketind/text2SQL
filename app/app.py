@@ -1,10 +1,18 @@
+import sys
+import os
+
+# Add the project root directory (parent of 'app') to sys.path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 print("--> Importing app.py")
 import streamlit as st
 import re
 print("--> app.py: Imported streamlit")
-from .db_config import get_schema, run_query
+from app.db_config import get_schema, run_query
 print("--> app.py: Imported db_config functions")
-from .llm_utils import generate_sql
+from app.llm_utils import generate_sql
 print("--> app.py: Imported llm_utils function")
 
 def extract_sql_from_response(text):
@@ -43,6 +51,45 @@ if question:
                 print("--> app.py: run_query() successful, calling st.dataframe()")
                 st.dataframe(result)
                 print("--> app.py: st.dataframe() successful")
+
+                # Attempt to display charts if data is suitable
+                if result is not None and not result.empty:
+                    try:
+                        # Basic check: Use first column as index if suitable, else default index
+                        chart_data = result
+                        if len(result.columns) > 0:
+                            # Check if the first column can be reasonably used as an index
+                            # This is a simple heuristic, might need refinement
+                            if result.iloc[:, 0].nunique() == len(result):
+                                try:
+                                    chart_data = result.set_index(result.columns[0])
+                                except Exception as idx_e:
+                                    print(f"--> app.py: Could not set index for chart: {idx_e}")
+                                    # Proceed with default index
+                        
+                        # Check if there are numeric columns to plot
+                        numeric_cols = chart_data.select_dtypes(include='number').columns
+                        
+                        if not numeric_cols.empty:
+                            print("--> app.py: Attempting to display charts")
+                            st.subheader("Charts")
+                            # Select first numeric column for basic charts
+                            # More sophisticated logic could allow user selection
+                            col_to_plot = numeric_cols[0]
+                            
+                            st.write("Line Chart:")
+                            st.line_chart(chart_data[col_to_plot])
+                            
+                            st.write("Bar Chart:")
+                            st.bar_chart(chart_data[col_to_plot])
+                            print("--> app.py: Charts displayed")
+                        else:
+                            print("--> app.py: No numeric columns found for charting.")
+                            # st.write("No suitable numeric data found for charting.")
+                    except Exception as chart_e:
+                        print(f"--> app.py: ERROR displaying charts - {chart_e}")
+                        st.warning(f"Could not display charts: {str(chart_e)}")
+
             except Exception as e:
                 # Errors from run_query should be caught there now, but keep this as fallback
                 print(f"--> app.py: ERROR in run_query block - {e}")

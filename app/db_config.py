@@ -2,6 +2,7 @@ from langchain_community.utilities import SQLDatabase
 from app.config import DATABASE_URL
 import streamlit as st
 from sqlalchemy import text
+import pandas as pd
 
 @st.cache_resource
 def get_db():
@@ -11,7 +12,7 @@ def get_db():
     try:
         db = SQLDatabase.from_uri(
             DATABASE_URL,
-            include_tables=["user_business"],  # Only include user_business table
+            include_tables=["user_business", "channel_whatsapp"],  # Only include user_business table
             sample_rows_in_table_info=0  # Disable sample rows
         )
         db.run("SELECT 1")
@@ -41,9 +42,11 @@ def run_query(sql):
             print(f"--> run_query: Columns: {columns}, Data: {data}")
             # Convert data to list of lists/tuples if needed (fetchall often returns list of Row objects)
             data_list = [tuple(row) for row in data]
-            return data_list, columns
+            # Create and return a Pandas DataFrame
+            df = pd.DataFrame(data_list, columns=columns)
+            return df
     except Exception as e:
         st.error(f"Error running SQL query: {e}")
         st.code(sql, language="sql")
-        # Return empty results on error to prevent crash in app_logic
-        return [], []
+        # Return empty DataFrame on error
+        return pd.DataFrame()
