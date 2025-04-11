@@ -1,8 +1,8 @@
 streamlit
 langchain
-openai
 python-dotenv
 psycopg2-binary
 langchain-community
-langchain-openai
+langchain
 pandas
+requests

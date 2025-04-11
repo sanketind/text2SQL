@@ -12,7 +12,6 @@ def get_db():
     try:
         db = SQLDatabase.from_uri(
             DATABASE_URL,
-            include_tables=["user_business", "channel_whatsapp"],  # Only include user_business table
             sample_rows_in_table_info=0  # Disable sample rows
         )
         db.run("SELECT 1")
@@ -37,12 +36,31 @@ def run_query(sql):
     try:
         with engine.connect() as connection:
             result_proxy = connection.execute(text(sql)) # Use SQLAlchemy text for safety
-            data = result_proxy.fetchall() # Fetch all rows
-            columns = list(result_proxy.keys()) # Get column names
-            print(f"--> run_query: Columns: {columns}, Data: {data}")
-            # Convert data to list of lists/tuples if needed (fetchall often returns list of Row objects)
-            data_list = [tuple(row) for row in data]
-            # Create and return a Pandas DataFrame
+            # Get column names first
+            columns = list(result_proxy.keys())
+            
+            # Fetch and convert data more carefully
+            data_list = []
+            for row in result_proxy.fetchall():
+                # Convert each row to a list of values, handling potential special types
+                row_values = []
+                for value in row:
+                    # Convert any special types to their string representation if needed
+                    if value is None:
+                        row_values.append(None)
+                    else:
+                        try:
+                            # Try direct conversion first
+                            row_values.append(value)
+                        except:
+                            # Fallback to string representation
+                            row_values.append(str(value))
+                data_list.append(row_values)
+            
+            print(f"--> run_query: Columns: {columns}")
+            print(f"--> run_query: First row (if any): {data_list[0] if data_list else 'No data'}")
+            
+            # Create DataFrame with processed data
             df = pd.DataFrame(data_list, columns=columns)
             return df
     except Exception as e:
