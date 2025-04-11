@@ -10,19 +10,14 @@ from app.llm_utils import generate_sql
 print("--> main.py: Imported llm_utils function")
 
 def extract_sql_from_response(text):
-    # Using regex to find SQL block marked with ```sql ... ```
-    print(f"--> extract_sql: Input text (first 100 chars): {text[:100]}...")
-    matches = re.findall(r"```sql(.*?)```", text, re.DOTALL | re.IGNORECASE)
-    print(f"--> extract_sql: Regex matches found: {matches}")
-    if matches:
-        raw_match = matches[0]
-        print(f"--> extract_sql: Raw match before strip: '{raw_match}'")
-        stripped_match = raw_match.strip()
-        print(f"--> extract_sql: Stripped match: '{stripped_match}'")
-        print(f"--> extract_sql: Type of stripped match: {type(stripped_match)}")
-        return stripped_match
+    """Extracts SQL query, assuming the input text *is* the SQL query."""
+    print(f"--> extract_sql (raw input): Input text (first 100 chars): {text[:100]}...")
+    if text:
+        sql_query = text.strip()
+        print(f"--> extract_sql (returning cleaned input): '{sql_query}'")
+        return sql_query
     else:
-        print("--> extract_sql: No SQL block found.")
+        print("--> extract_sql: Received empty text.")
         return None
 
 print("--> main.py: Running st.set_page_config()")
